@@ -20,6 +20,310 @@ from folium import plugins
 from streamlit_folium import st_folium
 warnings.filterwarnings('ignore')
 
+# ==================== BACKGROUND MUSIC (SOLUSI 2) ====================
+def add_background_music():
+    """Add background music from online audio source"""
+    
+    # Opsi 1: Gunakan URL audio dari file online (ganti dengan URL MP3 Anda)
+    # Rekomendasi: Upload lagu ke GitHub atau gunakan URL direct audio
+    audio_url = "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3"  # Contoh URL audio gratis
+    
+    # Opsi 2: Gunakan file lokal (jika ada)
+    # audio_url = "background_music.mp3"
+    
+    # HTML/CSS untuk audio player dengan posisi fixed di pojok kanan bawah
+    music_html = f"""
+    <style>
+    /* Styling untuk audio player */
+    #audio-player-container {{
+        position: fixed;
+        bottom: 20px;
+        right: 20px;
+        z-index: 999;
+        background: linear-gradient(135deg, rgba(0,0,0,0.85), rgba(0,0,0,0.7));
+        backdrop-filter: blur(10px);
+        border-radius: 15px;
+        padding: 10px 15px;
+        border: 1px solid rgba(255,255,255,0.25);
+        box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+        transition: all 0.3s ease;
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }}
+    
+    #audio-player-container:hover {{
+        transform: scale(1.02);
+        box-shadow: 0 6px 25px rgba(0,0,0,0.5);
+        border-color: rgba(255,215,0,0.5);
+    }}
+    
+    .audio-title {{
+        font-size: 11px;
+        color: #FFD700;
+        text-align: center;
+        margin-bottom: 5px;
+        font-weight: bold;
+        letter-spacing: 0.5px;
+    }}
+    
+    .audio-title i {{
+        font-style: normal;
+        animation: pulse 2s infinite;
+    }}
+    
+    @keyframes pulse {{
+        0% {{ opacity: 0.6; }}
+        50% {{ opacity: 1; }}
+        100% {{ opacity: 0.6; }}
+    }}
+    
+    #audio-player-container audio {{
+        width: 250px;
+        height: 35px;
+        border-radius: 20px;
+    }}
+    
+    #audio-player-container audio::-webkit-media-controls-panel {{
+        background-color: rgba(255,255,255,0.95);
+        border-radius: 20px;
+    }}
+    
+    #audio-player-container audio::-webkit-media-controls-play-button {{
+        background-color: #ff0000;
+        border-radius: 50%;
+    }}
+    
+    /* Tombol minimize */
+    .minimize-btn {{
+        position: absolute;
+        top: -8px;
+        right: -8px;
+        background: #ff4444;
+        color: white;
+        border-radius: 50%;
+        width: 20px;
+        height: 20px;
+        text-align: center;
+        line-height: 18px;
+        font-size: 12px;
+        cursor: pointer;
+        font-weight: bold;
+        transition: all 0.2s;
+        border: 1px solid white;
+    }}
+    
+    .minimize-btn:hover {{
+        background: #cc0000;
+        transform: scale(1.1);
+    }}
+    
+    /* Tooltip */
+    .audio-tooltip {{
+        position: absolute;
+        bottom: 100%;
+        right: 0;
+        margin-bottom: 5px;
+        background: rgba(0,0,0,0.8);
+        color: #FFD700;
+        padding: 4px 8px;
+        border-radius: 5px;
+        font-size: 10px;
+        white-space: nowrap;
+        pointer-events: none;
+        opacity: 0;
+        transition: opacity 0.3s;
+    }}
+    
+    #audio-player-container:hover .audio-tooltip {{
+        opacity: 1;
+    }}
+    </style>
+    
+    <div id="audio-player-container">
+        <div class="audio-title">
+            🎵 <i>Background Music</i> 🎵
+        </div>
+        <audio controls autoplay loop>
+            <source src="{audio_url}" type="audio/mpeg">
+            <source src="{audio_url.replace('.mp3', '.ogg')}" type="audio/ogg">
+            Browser Anda tidak mendukung audio player.
+        </audio>
+        <div class="audio-tooltip">
+            🎶 Putar/Jeda Musik | Volume bisa diatur 🎶
+        </div>
+    </div>
+    
+    <script>
+    // Optional: JavaScript untuk menyimpan status play/pause
+    const audioElement = document.querySelector('#audio-player-container audio');
+    if(audioElement) {{
+        // Cek apakah pernah di-pause sebelumnya
+        const wasPaused = localStorage.getItem('musicPaused');
+        if(wasPaused === 'true') {{
+            audioElement.pause();
+        }}
+        
+        // Simpan status saat pause
+        audioElement.addEventListener('pause', function() {{
+            localStorage.setItem('musicPaused', 'true');
+        }});
+        
+        // Simpan status saat play
+        audioElement.addEventListener('play', function() {{
+            localStorage.setItem('musicPaused', 'false');
+        }});
+    }}
+    </script>
+    """
+    
+    st.markdown(music_html, unsafe_allow_html=True)
+
+# ==================== ALTERNATIF: MENGGUNAKAN FILE BASE64 ====================
+def add_background_music_base64(audio_file_path=None, audio_url=None):
+    """Add background music using base64 encoding (lebih stabil untuk deployment)"""
+    
+    if audio_file_path:
+        # Jika menggunakan file lokal
+        try:
+            with open(audio_file_path, "rb") as audio_file:
+                audio_bytes = audio_file.read()
+                audio_base64 = base64.b64encode(audio_bytes).decode()
+                audio_src = f"data:audio/mpeg;base64,{audio_base64}"
+        except FileNotFoundError:
+            # Fallback ke URL jika file tidak ditemukan
+            audio_src = audio_url or "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3"
+    else:
+        # Gunakan URL
+        audio_src = audio_url or "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3"
+    
+    music_html = f"""
+    <style>
+    .music-player-fixed {{
+        position: fixed;
+        bottom: 20px;
+        right: 20px;
+        z-index: 999;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        border-radius: 12px;
+        padding: 8px 12px;
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255,255,255,0.3);
+        box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+        font-family: monospace;
+        transition: all 0.3s ease;
+    }}
+    .music-player-fixed:hover {{
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(0,0,0,0.4);
+    }}
+    .music-player-fixed audio {{
+        width: 260px;
+        height: 32px;
+    }}
+    .music-player-fixed audio::-webkit-media-controls-panel {{
+        background-color: rgba(255,255,255,0.9);
+    }}
+    .music-label {{
+        font-size: 10px;
+        color: #FFD700;
+        text-align: center;
+        margin-bottom: 4px;
+        font-weight: bold;
+    }}
+    </style>
+    
+    <div class="music-player-fixed">
+        <div class="music-label">🎵 Relaxing Music 🎵</div>
+        <audio controls autoplay loop>
+            <source src="{audio_src}" type="audio/mpeg">
+        </audio>
+    </div>
+    """
+    st.markdown(music_html, unsafe_allow_html=True)
+
+# ==================== FUNGSI UNTUK MENGGANTI URL MUSIK ====================
+def add_custom_background_music(custom_url):
+    """Add background music dengan URL kustom dari user"""
+    
+    music_html = f"""
+    <style>
+    .custom-music {{
+        position: fixed;
+        bottom: 20px;
+        right: 20px;
+        z-index: 999;
+        background: rgba(0,0,0,0.8);
+        border-radius: 15px;
+        padding: 12px;
+        backdrop-filter: blur(8px);
+        border: 1px solid #ff6b6b;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    }}
+    .custom-music audio {{
+        width: 280px;
+        height: 38px;
+    }}
+    .custom-music audio::-webkit-media-controls-panel {{
+        background-color: #2d2d2d;
+    }}
+    .music-brand {{
+        font-size: 10px;
+        color: #ff6b6b;
+        text-align: center;
+        margin-bottom: 5px;
+        font-weight: bold;
+    }}
+    </style>
+    
+    <div class="custom-music">
+        <div class="music-brand">
+            🚑 PSC 119 | Music Therapy 🚑
+        </div>
+        <audio controls autoplay loop>
+            <source src="{custom_url}" type="audio/mpeg">
+            Browser tidak support audio player.
+        </audio>
+    </div>
+    """
+    st.markdown(music_html, unsafe_allow_html=True)
+
+# ==================== KONFIGURASI MUSIK DI SIDEBAR ====================
+def music_sidebar_control():
+    """Tambahkan kontrol musik di sidebar"""
+    st.sidebar.markdown("---")
+    st.sidebar.markdown("## 🎵 Musik Latar")
+    
+    music_option = st.sidebar.selectbox(
+        "Pilih Sumber Musik",
+        ["Tanpa Musik", "Musik Relaksasi", "Musik Instrumental", "Musik Kustom"],
+        key="music_option"
+    )
+    
+    if music_option == "Musik Relaksasi":
+        # URL musik relaksasi (ganti dengan URL pilihan Anda)
+        music_url = "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3"
+        st.sidebar.success("✅ Musik Relaksasi AKTIF")
+        return music_url
+    elif music_option == "Musik Instrumental":
+        # URL musik instrumental
+        music_url = "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-3.mp3"
+        st.sidebar.success("✅ Musik Instrumental AKTIF")
+        return music_url
+    elif music_option == "Musik Kustom":
+        custom_url = st.sidebar.text_input(
+            "Masukkan URL MP3 (online):",
+            placeholder="https://example.com/music.mp3",
+            key="custom_music_url"
+        )
+        if custom_url:
+            st.sidebar.success("✅ Musik Kustom AKTIF")
+            return custom_url
+        else:
+            st.sidebar.info("💡 Masukkan URL MP3 untuk memutar musik kustom")
+            return None
+    else:
+        st.sidebar.info("🔇 Musik dimatikan")
+        return None
+
 # Set page config
 st.set_page_config(
     page_title="Analitik Data Sains & Sistem Pengambilan Keputusan Aksesibilitas PSC 119",
@@ -27,6 +331,18 @@ st.set_page_config(
     layout="wide",
     initial_sidebar_state="expanded"
 )
+
+# ==================== PANGGIL FUNGSI MUSIK ====================
+# Opsi 1: Panggil langsung (musik akan otomatis play)
+# add_background_music()
+
+# Opsi 2: Panggil dengan base64 (lebih stabil)
+# add_background_music_base64()
+
+# Opsi 3: Dengan kontrol di sidebar (REKOMENDASI)
+music_url_active = music_sidebar_control()
+if music_url_active:
+    add_custom_background_music(music_url_active)
 
 # Fungsi untuk mengambil gambar dari URL dan mengkonversinya ke base64
 def get_image_base64(url):
@@ -225,7 +541,6 @@ if 'model' not in st.session_state:
     st.session_state.model = None
 if 'features' not in st.session_state:
     st.session_state.features = None
-# ✅ FIX: Tambah session state untuk menyimpan hasil dispatch agar persisten
 if 'dispatch_result' not in st.session_state:
     st.session_state.dispatch_result = None
 
@@ -950,7 +1265,7 @@ elif menu == "6. Prediksi & Dispatch":
 
         st.markdown("---")
 
-        # ✅ FIX: Reset hasil dispatch jika koordinat TKP berubah
+        # Reset hasil dispatch jika koordinat TKP berubah
         if st.session_state.dispatch_result is not None:
             saved = st.session_state.dispatch_result
             if (saved["tkp_lat"] != tkp_lat or saved["tkp_lon"] != tkp_lon or
@@ -983,7 +1298,7 @@ elif menu == "6. Prediksi & Dispatch":
 
                 hasil_rute.sort(key=lambda x: x["est_waktu"])
 
-                # ✅ FIX: Simpan seluruh hasil ke session_state agar persisten antar re-run
+                # Simpan seluruh hasil ke session_state agar persisten antar re-run
                 st.session_state.dispatch_result = {
                     "hasil_rute": hasil_rute,
                     "tkp_lat": tkp_lat,
@@ -992,8 +1307,7 @@ elif menu == "6. Prediksi & Dispatch":
                     "selected_tile": selected_tile,
                 }
 
-        # ✅ FIX: Render peta hasil & rekomendasi dari session_state
-        # Blok ini selalu dieksekusi setiap re-run sehingga peta tidak hilang
+        # Render peta hasil & rekomendasi dari session_state
         if st.session_state.dispatch_result is not None:
             res = st.session_state.dispatch_result
             hasil_rute = res["hasil_rute"]
