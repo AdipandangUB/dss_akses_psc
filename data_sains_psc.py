@@ -20,16 +20,19 @@ from folium import plugins
 from streamlit_folium import st_folium
 warnings.filterwarnings('ignore')
 
-# ==================== BACKGROUND MUSIC (JAMES BOND THEME) ====================
+# ==================== BACKGROUND MUSIC (JAMES BOND THEME FROM GITHUB) ====================
 def add_background_music():
-    """Add background music from YouTube (James Bond Theme)"""
+    """Add background music from James Bond Theme.mp4 file in GitHub repo"""
     
-    # URL YouTube yang diminta
-    # Menggunakan embed YouTube dengan autoplay
-    music_html = """
+    # URL file MP4 dari GitHub repository (gunakan raw URL)
+    # Ganti dengan username dan repository Anda yang sesuai
+    music_url = "https://raw.githubusercontent.com/AdipandangUB/dss_akses_psc/main/James%20Bond%20Theme.mp4"
+    
+    # HTML5 Audio player dengan autoplay dan loop
+    music_html = f"""
     <style>
-    /* Styling untuk YouTube music player */
-    #youtube-music-container {
+    /* Styling untuk music player */
+    #music-container {{
         position: fixed;
         bottom: 20px;
         right: 20px;
@@ -42,42 +45,51 @@ def add_background_music():
         box-shadow: 0 4px 20px rgba(0,0,0,0.4);
         transition: all 0.3s ease;
         font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    }
+        width: 300px;
+    }}
     
-    #youtube-music-container:hover {
+    #music-container:hover {{
         transform: scale(1.02);
         box-shadow: 0 6px 25px rgba(0,0,0,0.5);
         border-color: rgba(255,215,0,0.8);
-    }
+    }}
     
-    .music-title {
+    .music-title {{
         font-size: 11px;
         color: #FFD700;
         text-align: center;
         margin-bottom: 5px;
         font-weight: bold;
         letter-spacing: 0.5px;
-    }
+    }}
     
-    .music-title i {
+    .music-title i {{
         font-style: normal;
         animation: pulse 2s infinite;
-    }
+    }}
     
-    @keyframes pulse {
-        0% { opacity: 0.6; }
-        50% { opacity: 1; }
-        100% { opacity: 0.6; }
-    }
+    @keyframes pulse {{
+        0% {{ opacity: 0.6; }}
+        50% {{ opacity: 1; }}
+        100% {{ opacity: 0.6; }}
+    }}
     
-    #youtube-music-container iframe {
+    audio {{
+        width: 100%;
+        height: 35px;
         border-radius: 8px;
-        width: 280px;
-        height: 80px;
-    }
+    }}
     
-    /* Tooltip */
-    .music-tooltip {
+    audio::-webkit-media-controls-panel {{
+        background-color: rgba(0,0,0,0.7);
+    }}
+    
+    audio::-webkit-media-controls-current-time-display,
+    audio::-webkit-media-controls-time-remaining-display {{
+        color: #FFD700;
+    }}
+    
+    .music-tooltip {{
         position: absolute;
         bottom: 100%;
         right: 0;
@@ -91,67 +103,56 @@ def add_background_music():
         pointer-events: none;
         opacity: 0;
         transition: opacity 0.3s;
-    }
+    }}
     
-    #youtube-music-container:hover .music-tooltip {
+    #music-container:hover .music-tooltip {{
         opacity: 1;
-    }
-    
-    /* Tombol toggle (opsional) */
-    .music-toggle {
-        position: absolute;
-        top: -8px;
-        left: -8px;
-        background: #ff0000;
-        color: white;
-        border-radius: 50%;
-        width: 20px;
-        height: 20px;
-        text-align: center;
-        line-height: 18px;
-        font-size: 12px;
-        cursor: pointer;
-        font-weight: bold;
-        transition: all 0.2s;
-        border: 1px solid white;
-        z-index: 1000;
-    }
-    
-    .music-toggle:hover {
-        background: #cc0000;
-        transform: scale(1.1);
-    }
+    }}
     </style>
     
-    <div id="youtube-music-container">
+    <div id="music-container">
         <div class="music-title">
             🎵 <i>James Bond Theme - Background Music</i> 🎵
         </div>
-        <iframe 
-            src="https://www.youtube.com/watch?v=_-ID8NmS1EY&list=RD_-ID8NmS1EY&start_radio=1"
-            frameborder="0" 
-            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-            allowfullscreen>
-        </iframe>
+        <audio controls autoplay loop>
+            <source src="{music_url}" type="audio/mp4">
+            Your browser does not support the audio element.
+        </audio>
         <div class="music-tooltip">
             🎶 007 James Bond Theme | Auto-play & Loop 🎶
         </div>
     </div>
     
     <script>
-    // Optional: JavaScript untuk menyimpan status play/pause
-    const iframe = document.querySelector('#youtube-music-container iframe');
-    if(iframe) {
-        // Cek apakah pernah di-pause sebelumnya
+    // Menyimpan status play/pause di localStorage
+    const audio = document.querySelector('audio');
+    if(audio) {{
+        // Cek apakah sebelumnya di-pause
         const wasPaused = localStorage.getItem('jamesBondMusicPaused');
-        if(wasPaused === 'true') {
-            // YouTube iframe pause tidak bisa langsung, ini hanya flag
-            console.log('Music previously paused by user');
-        }
+        if(wasPaused === 'true') {{
+            audio.pause();
+        }}
         
-        // Catatan: YouTube embed tidak bisa langsung dikontrol via JavaScript
-        // User harus menggunakan kontrol bawaan YouTube
-    }
+        // Simpan status ketika user pause/play
+        audio.addEventListener('pause', function() {{
+            localStorage.setItem('jamesBondMusicPaused', 'true');
+        }});
+        
+        audio.addEventListener('play', function() {{
+            localStorage.setItem('jamesBondMusicPaused', 'false');
+        }});
+        
+        // Coba autoplay (browser mungkin memblokir)
+        audio.play().catch(e => {{
+            console.log('Autoplay blocked. Click on player to play.');
+            // Tambahkan indikator bahwa perlu klik untuk play
+            const container = document.getElementById('music-container');
+            container.style.cursor = 'pointer';
+            container.addEventListener('click', function() {{
+                audio.play();
+            }});
+        }});
+    }}
     </script>
     """
     
@@ -453,6 +454,35 @@ st.sidebar.markdown("""
     <span style="font-size: 11px;">James Bond Theme</span><br>
     <span style="font-size: 10px; opacity: 0.8;">🎧 007 Background Music</span>
 </div>
+""", unsafe_allow_html=True)
+
+# Music control buttons di sidebar
+st.sidebar.markdown("### 🎮 Music Controls")
+col1, col2 = st.sidebar.columns(2)
+with col1:
+    if st.button("▶️ Play", key="play_btn", use_container_width=True):
+        st.markdown("""
+        <script>
+            const audio = document.querySelector('audio');
+            if(audio) audio.play();
+        </script>
+        """, unsafe_allow_html=True)
+with col2:
+    if st.button("⏸️ Pause", key="pause_btn", use_container_width=True):
+        st.markdown("""
+        <script>
+            const audio = document.querySelector('audio');
+            if(audio) audio.pause();
+        </script>
+        """, unsafe_allow_html=True)
+
+# Volume control
+volume = st.sidebar.slider("🔊 Volume", 0, 100, 70, key="volume_slider")
+st.markdown(f"""
+<script>
+    const audioVol = document.querySelector('audio');
+    if(audioVol) audioVol.volume = {volume/100};
+</script>
 """, unsafe_allow_html=True)
 
 # Footer di sidebar
