@@ -128,7 +128,7 @@ def add_background_music():
             🎵 <i>James Bond Theme - Background Music</i> 🎵
         </div>
         <iframe 
-            src="https://www.youtube.com/embed/OazkZUzzpb0?autoplay=1&loop=1&playlist=OazkZUzzpb0&controls=1&modestbranding=1&rel=0&showinfo=0"
+            src="https://www.youtube.com/watch?v=_-ID8NmS1EY&list=RD_-ID8NmS1EY&start_radio=1"
             frameborder="0" 
             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
             allowfullscreen>
