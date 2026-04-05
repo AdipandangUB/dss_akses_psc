@@ -20,146 +20,244 @@ from folium import plugins
 from streamlit_folium import st_folium
 warnings.filterwarnings('ignore')
 
-# ==================== BACKGROUND MUSIC (JAMES BOND THEME FROM GITHUB) ====================
+# ==================== BACKGROUND MUSIC (FIXED VERSION) ====================
 def add_background_music():
-    """Add background music from James Bond Theme.mp4 file in GitHub repo"""
-    
-    # URL file MP4 dari GitHub repository (gunakan raw URL)
-    # Ganti dengan username dan repository Anda yang sesuai
+    """
+    Add background music with a fully self-contained HTML/JS player.
+    Controls (Play, Pause, Volume) all live inside one persistent HTML block
+    and use getElementById + localStorage — no Streamlit re-render needed.
+    """
+
     music_url = "https://raw.githubusercontent.com/AdipandangUB/dss_akses_psc/main/James%20Bond%20Theme.mp4"
-    
-    # HTML5 Audio player dengan autoplay dan loop
+
     music_html = f"""
     <style>
-    /* Styling untuk music player */
-    #music-container {{
+    #jb-player-wrap {{
         position: fixed;
         bottom: 20px;
         right: 20px;
-        z-index: 999;
-        background: linear-gradient(135deg, rgba(0,0,0,0.85), rgba(0,0,0,0.7));
-        backdrop-filter: blur(10px);
-        border-radius: 12px;
-        padding: 8px 12px;
+        z-index: 9999;
+        background: linear-gradient(135deg, rgba(0,0,0,0.92), rgba(20,20,20,0.88));
+        backdrop-filter: blur(14px);
+        border-radius: 14px;
+        padding: 10px 14px 8px 14px;
         border: 1px solid rgba(255,215,0,0.5);
-        box-shadow: 0 4px 20px rgba(0,0,0,0.4);
-        transition: all 0.3s ease;
-        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        box-shadow: 0 4px 28px rgba(0,0,0,0.55);
         width: 300px;
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        transition: box-shadow 0.3s, border-color 0.3s;
     }}
-    
-    #music-container:hover {{
-        transform: scale(1.02);
-        box-shadow: 0 6px 25px rgba(0,0,0,0.5);
-        border-color: rgba(255,215,0,0.8);
+    #jb-player-wrap:hover {{
+        border-color: rgba(255,215,0,0.9);
+        box-shadow: 0 6px 32px rgba(255,215,0,0.18);
     }}
-    
-    .music-title {{
+    .jb-title {{
         font-size: 11px;
         color: #FFD700;
         text-align: center;
-        margin-bottom: 5px;
+        margin-bottom: 7px;
         font-weight: bold;
         letter-spacing: 0.5px;
+        animation: jbPulse 2.5s ease-in-out infinite;
     }}
-    
-    .music-title i {{
-        font-style: normal;
-        animation: pulse 2s infinite;
+    @keyframes jbPulse {{
+        0%,100% {{ opacity: 0.7; }}
+        50%      {{ opacity: 1.0; }}
     }}
-    
-    @keyframes pulse {{
-        0% {{ opacity: 0.6; }}
-        50% {{ opacity: 1; }}
-        100% {{ opacity: 0.6; }}
+    .jb-controls {{
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-bottom: 6px;
     }}
-    
-    audio {{
-        width: 100%;
-        height: 35px;
+    .jb-btn {{
+        background: rgba(255,215,0,0.12);
+        border: 1px solid rgba(255,215,0,0.45);
+        color: #FFD700;
         border-radius: 8px;
-    }}
-    
-    audio::-webkit-media-controls-panel {{
-        background-color: rgba(0,0,0,0.7);
-    }}
-    
-    audio::-webkit-media-controls-current-time-display,
-    audio::-webkit-media-controls-time-remaining-display {{
-        color: #FFD700;
-    }}
-    
-    .music-tooltip {{
-        position: absolute;
-        bottom: 100%;
-        right: 0;
-        margin-bottom: 5px;
-        background: rgba(0,0,0,0.8);
-        color: #FFD700;
-        padding: 4px 8px;
-        border-radius: 5px;
-        font-size: 10px;
+        padding: 5px 12px;
+        cursor: pointer;
+        font-size: 14px;
+        transition: background 0.2s, border-color 0.2s, transform 0.1s;
         white-space: nowrap;
-        pointer-events: none;
-        opacity: 0;
-        transition: opacity 0.3s;
     }}
-    
-    #music-container:hover .music-tooltip {{
-        opacity: 1;
+    .jb-btn:hover  {{ background: rgba(255,215,0,0.28); border-color: #FFD700; }}
+    .jb-btn:active {{ transform: scale(0.95); }}
+    .jb-vol-row {{
+        display: flex;
+        align-items: center;
+        gap: 7px;
     }}
+    .jb-vol-label {{
+        color: rgba(255,255,255,0.75);
+        font-size: 11px;
+        white-space: nowrap;
+    }}
+    #jb-vol {{
+        flex: 1;
+        accent-color: #FFD700;
+        cursor: pointer;
+        height: 4px;
+    }}
+    #jb-vol-pct {{
+        color: rgba(255,215,0,0.85);
+        font-size: 11px;
+        min-width: 32px;
+        text-align: right;
+    }}
+    #jb-time {{
+        color: rgba(255,215,0,0.6);
+        font-size: 10px;
+        text-align: right;
+        margin-top: 5px;
+        letter-spacing: 0.3px;
+    }}
+    /* Progress bar */
+    #jb-progress-wrap {{
+        width: 100%;
+        height: 3px;
+        background: rgba(255,255,255,0.12);
+        border-radius: 3px;
+        margin-top: 6px;
+        overflow: hidden;
+    }}
+    #jb-progress-bar {{
+        height: 100%;
+        width: 0%;
+        background: linear-gradient(90deg, #FFD700, #FFA500);
+        border-radius: 3px;
+        transition: width 0.5s linear;
+    }}
+    /* Hidden native audio */
+    audio#jb-audio {{ display: none; }}
     </style>
-    
-    <div id="music-container">
-        <div class="music-title">
-            🎵 <i>James Bond Theme - Background Music</i> 🎵
-        </div>
-        <audio controls autoplay loop>
+
+    <div id="jb-player-wrap">
+        <div class="jb-title">🎵 James Bond Theme &mdash; Background Music 🎵</div>
+
+        <audio id="jb-audio" loop preload="auto">
             <source src="{music_url}" type="audio/mp4">
-            Your browser does not support the audio element.
         </audio>
-        <div class="music-tooltip">
-            🎶 007 James Bond Theme | Auto-play & Loop 🎶
+
+        <div class="jb-controls">
+            <button class="jb-btn" id="jb-playpause-btn" onclick="jbToggle()">▶️ Play</button>
+            <div class="jb-vol-row" style="flex:1;">
+                <span class="jb-vol-label">🔊</span>
+                <input id="jb-vol" type="range" min="0" max="100" value="70"
+                       oninput="jbSetVol(this.value)">
+                <span id="jb-vol-pct">70%</span>
+            </div>
         </div>
+
+        <div id="jb-progress-wrap">
+            <div id="jb-progress-bar"></div>
+        </div>
+        <div id="jb-time">0:00 / 0:00</div>
     </div>
-    
+
     <script>
-    // Menyimpan status play/pause di localStorage
-    const audio = document.querySelector('audio');
-    if(audio) {{
-        // Cek apakah sebelumnya di-pause
-        const wasPaused = localStorage.getItem('jamesBondMusicPaused');
-        if(wasPaused === 'true') {{
-            audio.pause();
+    (function() {{
+
+        /* ---- Utilities ---- */
+        function fmt(s) {{
+            if (!isFinite(s)) return '0:00';
+            var m = Math.floor(s / 60);
+            var sec = Math.floor(s % 60);
+            return m + ':' + (sec < 10 ? '0' : '') + sec;
         }}
-        
-        // Simpan status ketika user pause/play
-        audio.addEventListener('pause', function() {{
-            localStorage.setItem('jamesBondMusicPaused', 'true');
-        }});
-        
-        audio.addEventListener('play', function() {{
-            localStorage.setItem('jamesBondMusicPaused', 'false');
-        }});
-        
-        // Coba autoplay (browser mungkin memblokir)
-        audio.play().catch(e => {{
-            console.log('Autoplay blocked. Click on player to play.');
-            // Tambahkan indikator bahwa perlu klik untuk play
-            const container = document.getElementById('music-container');
-            container.style.cursor = 'pointer';
-            container.addEventListener('click', function() {{
-                audio.play();
+
+        function syncBtn(paused) {{
+            var btn = document.getElementById('jb-playpause-btn');
+            if (btn) btn.textContent = paused ? '▶️ Play' : '⏸️ Pause';
+        }}
+
+        /* ---- Init (retries until DOM ready) ---- */
+        function initJBPlayer() {{
+            var audio  = document.getElementById('jb-audio');
+            var volEl  = document.getElementById('jb-vol');
+            var pctEl  = document.getElementById('jb-vol-pct');
+            var timeEl = document.getElementById('jb-time');
+            var progEl = document.getElementById('jb-progress-bar');
+
+            if (!audio || !volEl) {{
+                setTimeout(initJBPlayer, 300);
+                return;
+            }}
+
+            /* Restore volume */
+            var savedVol = localStorage.getItem('jbVolume');
+            if (savedVol !== null) {{
+                audio.volume  = Math.min(Math.max(parseInt(savedVol, 10), 0), 100) / 100;
+                volEl.value   = savedVol;
+                if (pctEl) pctEl.textContent = savedVol + '%';
+            }} else {{
+                audio.volume = 0.70;
+            }}
+
+            /* Time + progress update */
+            audio.addEventListener('timeupdate', function() {{
+                if (timeEl) timeEl.textContent = fmt(audio.currentTime) + ' / ' + fmt(audio.duration);
+                if (progEl && audio.duration) {{
+                    progEl.style.width = ((audio.currentTime / audio.duration) * 100).toFixed(1) + '%';
+                }}
             }});
-        }});
-    }}
+
+            /* Sync button state on external events */
+            audio.addEventListener('play',  function() {{ syncBtn(false); localStorage.setItem('jbMusicPaused','false'); }});
+            audio.addEventListener('pause', function() {{ syncBtn(true);  localStorage.setItem('jbMusicPaused','true');  }});
+
+            /* Autoplay (may be blocked by browser policy) */
+            var wasPaused = localStorage.getItem('jbMusicPaused') === 'true';
+            if (!wasPaused) {{
+                audio.play().catch(function() {{
+                    syncBtn(true); /* blocked — show Play button */
+                }});
+            }} else {{
+                syncBtn(true);
+            }}
+        }}
+
+        /* ---- Public API (called from sidebar buttons & inline controls) ---- */
+        window.jbToggle = function() {{
+            var audio = document.getElementById('jb-audio');
+            if (!audio) return;
+            if (audio.paused) {{
+                audio.play().catch(function() {{}});
+            }} else {{
+                audio.pause();
+            }}
+        }};
+
+        window.jbPlay = function() {{
+            var audio = document.getElementById('jb-audio');
+            if (audio) audio.play().catch(function() {{}});
+        }};
+
+        window.jbPause = function() {{
+            var audio = document.getElementById('jb-audio');
+            if (audio) audio.pause();
+        }};
+
+        window.jbSetVol = function(v) {{
+            var audio  = document.getElementById('jb-audio');
+            var pctEl  = document.getElementById('jb-vol-pct');
+            var volEl  = document.getElementById('jb-vol');
+            var iv     = Math.min(Math.max(parseInt(v, 10), 0), 100);
+            if (audio)  audio.volume        = iv / 100;
+            if (pctEl)  pctEl.textContent   = iv + '%';
+            if (volEl)  volEl.value         = iv;
+            localStorage.setItem('jbVolume', iv);
+        }};
+
+        initJBPlayer();
+    }})();
     </script>
     """
-    
+
     st.markdown(music_html, unsafe_allow_html=True)
 
+
 # ==================== PANGGIL FUNGSI MUSIK ====================
-# Panggil fungsi untuk menampilkan music player
 add_background_music()
 
 # Set page config
@@ -358,7 +456,7 @@ else:
 st.markdown(sidebar_css, unsafe_allow_html=True)
 
 # Title dengan background gambar
-st.markdown('<div class="main-header"><h1>🚑 Analitik Data Sains & Sistem Pengambilan Keputusan Aksesibilitas PSC 119</h1><p>Sistem Analisis dan Prediksi Response Time Ambulans</p></div>', unsafe_allow_html=True)
+st.markdown('<div class="main-header"><h1>🚑 Analitik Data Sains & Decision Support Systems (DSS) Aksesibilitas PSC 119</h1><p>Sistem Analisis dan Prediksi Response Time Ambulans</p></div>', unsafe_allow_html=True)
 
 # Initialize session state
 if 'df' not in st.session_state:
@@ -439,7 +537,8 @@ st.sidebar.markdown('</div>', unsafe_allow_html=True)
 
 st.sidebar.markdown("---")
 
-# Menampilkan informasi musik di sidebar
+# ==================== SIDEBAR MUSIC INFO & CONTROLS (FIXED) ====================
+# Info box musik
 st.sidebar.markdown("""
 <div style="
     background: rgba(0,0,0,0.5);
@@ -456,39 +555,95 @@ st.sidebar.markdown("""
 </div>
 """, unsafe_allow_html=True)
 
-# Music control buttons di sidebar
 st.sidebar.markdown("### 🎮 Music Controls")
-col1, col2 = st.sidebar.columns(2)
-with col1:
-    if st.button("▶️ Play", key="play_btn", use_container_width=True):
-        st.markdown("""
-        <script>
-            const audio = document.querySelector('audio');
-            if(audio) audio.play();
-        </script>
-        """, unsafe_allow_html=True)
-with col2:
-    if st.button("⏸️ Pause", key="pause_btn", use_container_width=True):
-        st.markdown("""
-        <script>
-            const audio = document.querySelector('audio');
-            if(audio) audio.pause();
-        </script>
-        """, unsafe_allow_html=True)
 
-# Volume control
-volume = st.sidebar.slider("🔊 Volume", 0, 100, 70, key="volume_slider")
-st.markdown(f"""
+# ==================== PERBAIKAN UTAMA ====================
+# Menggunakan pure HTML buttons + inline JS yang memanggil fungsi global
+# window.jbPlay / window.jbPause / window.jbSetVol yang sudah didefinisikan
+# di add_background_music() — TANPA st.button & st.slider agar tidak
+# memicu Streamlit re-render yang menghancurkan elemen audio.
+st.sidebar.markdown("""
+<div style="margin-bottom: 10px;">
+
+    <!-- Baris tombol Play & Pause -->
+    <div style="display:flex; gap:8px; margin-bottom:10px;">
+        <button
+            onclick="if(typeof window.jbPlay==='function') window.jbPlay();"
+            style="
+                flex: 1;
+                background: rgba(255,215,0,0.15);
+                border: 1px solid rgba(255,215,0,0.5);
+                color: #FFD700;
+                border-radius: 8px;
+                padding: 7px 0;
+                cursor: pointer;
+                font-size: 14px;
+                font-weight: bold;
+                transition: background 0.2s, border-color 0.2s;
+            "
+            onmouseover="this.style.background='rgba(255,215,0,0.3)'; this.style.borderColor='#FFD700';"
+            onmouseout="this.style.background='rgba(255,215,0,0.15)'; this.style.borderColor='rgba(255,215,0,0.5)';"
+        >▶️ Play</button>
+
+        <button
+            onclick="if(typeof window.jbPause==='function') window.jbPause();"
+            style="
+                flex: 1;
+                background: rgba(255,215,0,0.15);
+                border: 1px solid rgba(255,215,0,0.5);
+                color: #FFD700;
+                border-radius: 8px;
+                padding: 7px 0;
+                cursor: pointer;
+                font-size: 14px;
+                font-weight: bold;
+                transition: background 0.2s, border-color 0.2s;
+            "
+            onmouseover="this.style.background='rgba(255,215,0,0.3)'; this.style.borderColor='#FFD700';"
+            onmouseout="this.style.background='rgba(255,215,0,0.15)'; this.style.borderColor='rgba(255,215,0,0.5)';"
+        >⏸️ Pause</button>
+    </div>
+
+    <!-- Volume slider -->
+    <div style="display:flex; align-items:center; gap:8px;">
+        <span style="color:rgba(255,255,255,0.85); font-size:12px; white-space:nowrap;">🔊 Volume</span>
+        <input
+            id="sidebar-vol-slider"
+            type="range"
+            min="0" max="100" value="70"
+            style="flex:1; accent-color:#FFD700; cursor:pointer; height:5px;"
+            oninput="
+                if(typeof window.jbSetVol==='function') window.jbSetVol(this.value);
+                document.getElementById('sidebar-vol-pct').textContent = this.value + '%';
+            "
+        >
+        <span id="sidebar-vol-pct"
+            style="color:rgba(255,215,0,0.85); font-size:11px; min-width:34px; text-align:right;">
+            70%
+        </span>
+    </div>
+
+</div>
+
 <script>
-    const audioVol = document.querySelector('audio');
-    if(audioVol) audioVol.volume = {volume/100};
+/* Sinkronisasi slider sidebar dengan volume player utama saat halaman pertama load */
+(function syncSidebarSlider() {
+    var savedVol = localStorage.getItem('jbVolume');
+    if (savedVol !== null) {
+        var slider = document.getElementById('sidebar-vol-slider');
+        var pct    = document.getElementById('sidebar-vol-pct');
+        if (slider) slider.value = savedVol;
+        if (pct)    pct.textContent = savedVol + '%';
+    }
+})();
 </script>
 """, unsafe_allow_html=True)
+# ==================== AKHIR PERBAIKAN ====================
 
 # Footer di sidebar
 st.sidebar.info(
     """
-    **Analitik Data Sains & Sistem Pengambilan Keputusan Aksesibilitas PSC 119**
+    **Analitik Data Sains & Decision Support Systems (DSS) Aksesibilitas PSC 119**
 
     Sistem analisis dan prediksi response time
     untuk optimalisasi layanan ambulans.
@@ -948,7 +1103,6 @@ elif menu == "6. Prediksi & Dispatch":
                     kat_waktu = st.selectbox("Kategori Waktu", ["Pagi", "Siang", "Sore", "Malam"], key='kategori_waktu_pred')
                     input_values['Kategori Waktu'] = {"Pagi": 0, "Siang": 1, "Sore": 2, "Malam": 3}[kat_waktu]
 
-            # Isi nilai default untuk fitur yang tidak ada input UI-nya
             default_values = {
                 'Jarak tempuh ke TKP (km)': 5.0,
                 'Usia (tahun)': 40,
@@ -986,13 +1140,11 @@ elif menu == "6. Prediksi & Dispatch":
         st.subheader("🗺️ Sistem Rekomendasi Dispatch Cerdas")
         st.markdown("Klik pada peta untuk menentukan lokasi TKP, lalu sistem akan menghitung rute tercepat dari posko ambulans terdekat.")
 
-        # ---- Session state untuk koordinat TKP ----
         if 'tkp_lat' not in st.session_state:
             st.session_state.tkp_lat = -7.9797
         if 'tkp_lon' not in st.session_state:
             st.session_state.tkp_lon = 112.6304
 
-        # ---- Konfigurasi parameter ----
         col_cfg1, col_cfg2, col_cfg3 = st.columns(3)
         with col_cfg1:
             basemap = st.selectbox(
@@ -1005,7 +1157,6 @@ elif menu == "6. Prediksi & Dispatch":
         with col_cfg3:
             kasus = st.selectbox("🏥 Jenis Kasus", ["Non-Trauma", "Trauma"], key='kasus_select_tab2')
 
-        # ---- Koordinat input manual ----
         col_lat, col_lon = st.columns(2)
         with col_lat:
             tkp_lat = st.number_input("📍 Latitude TKP", value=st.session_state.tkp_lat,
@@ -1017,7 +1168,6 @@ elif menu == "6. Prediksi & Dispatch":
         st.session_state.tkp_lat = tkp_lat
         st.session_state.tkp_lon = tkp_lon
 
-        # ---- Definisi Posko ----
         POSKO = {
             "PMI Kota Malang": {
                 "lat": -7.9731, "lon": 112.6186,
@@ -1036,7 +1186,6 @@ elif menu == "6. Prediksi & Dispatch":
             },
         }
 
-        # ---- Basemap tiles ----
         BASEMAP_TILES = {
             "OpenStreetMap": {
                 "tiles": "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
@@ -1057,7 +1206,6 @@ elif menu == "6. Prediksi & Dispatch":
 
         selected_tile = BASEMAP_TILES[basemap]
 
-        # ---- Hitung jarak Haversine ----
         def haversine(lat1, lon1, lat2, lon2):
             R = 6371
             dlat = math.radians(lat2 - lat1)
@@ -1065,7 +1213,6 @@ elif menu == "6. Prediksi & Dispatch":
             a = math.sin(dlat/2)**2 + math.cos(math.radians(lat1)) * math.cos(math.radians(lat2)) * math.sin(dlon/2)**2
             return R * 2 * math.asin(math.sqrt(a))
 
-        # ---- Fetch rute dari OSRM (gratis, open source) ----
         def get_osrm_route(lat1, lon1, lat2, lon2):
             try:
                 url = f"http://router.project-osrm.org/route/v1/driving/{lon1},{lat1};{lon2},{lat2}?overview=full&geometries=geojson"
@@ -1077,14 +1224,12 @@ elif menu == "6. Prediksi & Dispatch":
                         coords = route["geometry"]["coordinates"]
                         distance_km = route["distance"] / 1000
                         duration_min = route["duration"] / 60
-                        # OSRM returns [lon, lat], flip to [lat, lon] for Folium
                         latlon_coords = [[c[1], c[0]] for c in coords]
                         return latlon_coords, distance_km, duration_min
             except Exception:
                 pass
             return None, None, None
 
-        # ---- Helper fungsi status ----
         def get_status(waktu):
             if waktu <= 15:
                 return "🟢 Target Internasional (Aman)"
@@ -1093,7 +1238,6 @@ elif menu == "6. Prediksi & Dispatch":
             else:
                 return "🔴 Terlambat (>25 menit)"
 
-        # ---- Build Folium map (peta input TKP) ----
         m = folium.Map(
             location=[-7.9797, 112.6304],
             zoom_start=13,
@@ -1101,7 +1245,6 @@ elif menu == "6. Prediksi & Dispatch":
             attr=selected_tile["attr"]
         )
 
-        # Marker TKP
         folium.Marker(
             location=[tkp_lat, tkp_lon],
             popup=folium.Popup(f"<b>📍 TKP</b><br>Lat: {tkp_lat:.5f}<br>Lon: {tkp_lon:.5f}", max_width=200),
@@ -1109,7 +1252,6 @@ elif menu == "6. Prediksi & Dispatch":
             icon=folium.Icon(color="orange", icon="exclamation-sign", prefix="glyphicon")
         ).add_to(m)
 
-        # Marker tiap Posko
         for nama, info in POSKO.items():
             jarak_lurus = haversine(tkp_lat, tkp_lon, info["lat"], info["lon"])
             folium.Marker(
@@ -1127,7 +1269,6 @@ elif menu == "6. Prediksi & Dispatch":
         st.info("💡 **Petunjuk:** Klik pada peta untuk mendapatkan koordinat TKP, lalu salin ke kolom Latitude/Longitude di atas.")
         map_data = st_folium(m, width="100%", height=450, key="dispatch_map")
 
-        # Update koordinat jika peta diklik
         if map_data and map_data.get("last_clicked"):
             clicked = map_data["last_clicked"]
             st.session_state.tkp_lat = round(clicked["lat"], 6)
@@ -1137,14 +1278,12 @@ elif menu == "6. Prediksi & Dispatch":
 
         st.markdown("---")
 
-        # Reset hasil dispatch jika koordinat TKP berubah
         if st.session_state.dispatch_result is not None:
             saved = st.session_state.dispatch_result
             if (saved["tkp_lat"] != tkp_lat or saved["tkp_lon"] != tkp_lon or
                     saved["kasus"] != kasus):
                 st.session_state.dispatch_result = None
 
-        # ---- Tombol Cari Unit & Tampilkan Rute ----
         if st.button("🏆 Cari Unit Tercepat & Tampilkan Rute", type="primary", key='cari_unit_btn'):
 
             pengurang_trauma = 10.0 if kasus == "Trauma" else 0.0
@@ -1170,7 +1309,6 @@ elif menu == "6. Prediksi & Dispatch":
 
                 hasil_rute.sort(key=lambda x: x["est_waktu"])
 
-                # Simpan seluruh hasil ke session_state agar persisten antar re-run
                 st.session_state.dispatch_result = {
                     "hasil_rute": hasil_rute,
                     "tkp_lat": tkp_lat,
@@ -1179,7 +1317,6 @@ elif menu == "6. Prediksi & Dispatch":
                     "selected_tile": selected_tile,
                 }
 
-        # Render peta hasil & rekomendasi dari session_state
         if st.session_state.dispatch_result is not None:
             res = st.session_state.dispatch_result
             hasil_rute = res["hasil_rute"]
@@ -1198,7 +1335,6 @@ elif menu == "6. Prediksi & Dispatch":
                 attr=_tile["attr"]
             )
 
-            # Marker TKP
             folium.Marker(
                 location=[_tkp_lat, _tkp_lon],
                 popup=folium.Popup(f"<b>📍 Lokasi TKP</b><br>Lat: {_tkp_lat:.5f}<br>Lon: {_tkp_lon:.5f}", max_width=200),
@@ -1252,7 +1388,6 @@ elif menu == "6. Prediksi & Dispatch":
                             )
                         ).add_to(m2)
                 else:
-                    # Fallback garis lurus jika OSRM gagal
                     folium.PolyLine(
                         locations=[[info["lat"], info["lon"]], [_tkp_lat, _tkp_lon]],
                         color=color_hex,
@@ -1262,14 +1397,12 @@ elif menu == "6. Prediksi & Dispatch":
                         tooltip=f"{hasil['nama']} (estimasi lurus)"
                     ).add_to(m2)
 
-            # Fit bounds ke semua titik
             all_points = [[_tkp_lat, _tkp_lon]] + [[h["info"]["lat"], h["info"]["lon"]] for h in hasil_rute]
             m2.fit_bounds(all_points)
 
             st.markdown("### 🗺️ Peta Network Analysis Origin-Destination")
             st_folium(m2, width="100%", height=500, key="route_map")
 
-            # ---- Hasil Rekomendasi ----
             st.markdown("---")
             st.markdown(f"""
             ### 🎯 REKOMENDASI UTAMA
@@ -1400,7 +1533,7 @@ st.markdown("""
 <div class="app-footer">
     <div class="footer-grid">
         <div>
-            <h3>🚑 Analitik Data Sains & Sistem Pengambilan Keputusan Aksesibilitas PSC 119</h3>
+            <h3>🚑 Analitik Data Sains & Decision Support Systems (DSS) Aksesibilitas PSC 119</h3>
             <p>Platform analitik data sains & sistem pengambilan keputusan berbasis <strong>Machine Learning</strong> yang dirancang
             khusus untuk memantau, menganalisis, dan memprediksi <em>response time</em> ambulans
             layanan PSC 119 Kota Malang secara akurat dan real-time.</p>
